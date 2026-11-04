@@ -5,8 +5,8 @@
 ## Group members
 | Name | Student ID | Class group |
 |------|-----------|-------------|
-| NYIRINKINDI David | 29180 |  C
-| NDAGIJIMANA Rasana Bonte | 29506 |  D
+| NYIRINKINDI David | 29180 | C |
+| NDAGIJIMANA Rasana Bonte | 29506 | D |
 
 Course: Database Development with PL/SQL – Instructor: Eric Maniraguha
 
@@ -32,6 +32,14 @@ STUDENTS 1 ──< ENROLLMENTS >── 1 COURSES
                    │ 1
                    └──< GRADE_AUDIT
 ```
+
+**Tables created (`00_schema/01_create_tables.sql`)**
+
+![Create tables](screenshots/create_tables_output.png)
+
+**Sample data inserted (`00_schema/02_insert_sample_data.sql`)** – 10 students, 5 courses, 29 enrollments
+
+![Insert sample data](screenshots/insert_sample_data_output.png)
 
 ## 3. Concept → file map
 | Requirement | Where it is demonstrated |
@@ -61,11 +69,23 @@ Run everything from the **repository root** so relative paths work.
 ```
 sqlplus / as sysdba
 SQL> ALTER SESSION SET CONTAINER = XEPDB1;            -- skip if not using a PDB
-SQL> CREATE USER grading_app IDENTIFIED BY YourPassword123;
+SQL> CREATE USER grading_app IDENTIFIED BY <your_password>;
 SQL> GRANT CONNECT, RESOURCE, CREATE VIEW, UNLIMITED TABLESPACE TO grading_app;
-SQL> CONNECT grading_app/YourPassword123@localhost:1521/XEPDB1
+SQL> CONNECT grading_app/<your_password>@localhost:1521/XEPDB1
 SQL> SET SERVEROUTPUT ON SIZE UNLIMITED
 ```
+
+**Step 1 – Connect to the pluggable database (`XEPDB1`)**
+
+![Container](screenshots/setup_container_output.png)
+
+**Step 2 – Create the project user and grant privileges**
+
+![Create user](screenshots/create_user_output.png)
+
+**Step 3 – Connect as `grading_app`**
+
+![Connection](screenshots/setup_connection_output.png)
 
 **Option A – one command:** `SQL> @install_all.sql` then `SQL> @run_tests.sql`
 
@@ -78,8 +98,86 @@ SQL> SET SERVEROUTPUT ON SIZE UNLIMITED
 5. Remaining files in `01_procedures/`
 6. `@03_tests/test_success_cases.sql` then `@03_tests/test_error_cases.sql`
 
-To reset the project: `@00_schema/00_drop_all.sql` (first-run "does not exist" errors are expected).
-Screenshots go in `screenshots/` (see `docs/SCREENSHOT_CHECKLIST.md`). Design/performance notes: `docs/IMPLEMENTATION_NOTES.md`.
+**Compiling `log_error` and the functions (step 3–4)**
 
-## 5. AI usage statement
-We used an AI assistant (Claude, by Anthropic).AI tools were used as supporting resources during the planning and initial development of this project. They assisted with generating ideas, drafting some SQL/PL/SQL scripts, and organizing the documentation. Both group members reviewed, tested, modified, and verified the implementation to ensure that we understood the code and that it met the assignment requirements.
+![Compile functions](screenshots/compile_functions_output.png)
+
+**Compiling the remaining procedures (step 5)**
+
+![Compile procedures](screenshots/compile_procedures_output.png)
+
+**Compile check – all procedures, functions and types are `VALID`**
+
+![All objects valid](screenshots/compile_objects_output.png)
+
+To reset the project: `@00_schema/00_drop_all.sql` (first-run "does not exist" errors are expected).
+Screenshot list: `docs/SCREENSHOT_CHECKLIST.md`. Design and performance notes: `docs/IMPLEMENTATION_NOTES.md`.
+
+## 5. Test cases and results
+
+### 5.1 Successful execution (`03_tests/test_success_cases.sql`)
+
+**Functions: letter grade, GPA, seats per course, search by last name**
+
+![Functions](screenshots/test_functions_output.png)
+
+**`get_top_students` – returns a VARRAY, queried with `TABLE()`**
+
+![Top students](screenshots/test_top_students_output.png)
+
+**`student_transcript` – user-defined record, associative arrays, cursor FOR loop**
+
+![Student transcript](screenshots/test_student_transcript_output.png)
+
+**`print_course_report` – explicit cursor (OPEN / FETCH / CLOSE)**
+
+![Course report](screenshots/test_print_course_report_output.png)
+
+**`enroll_student` and `bulk_enroll_students` – implicit cursor INSERT and FORALL**
+
+![Enroll student and bulk enroll](screenshots/test_enroll_student_output.png)
+
+**`bulk_update_grades` – BULK COLLECT + FORALL, with `GRADE_AUDIT` rows**
+
+![Bulk update grades](screenshots/test_bulk_update_grades_output.png)
+
+**`update_student_status` and `delete_inactive_enrollments` – implicit cursor UPDATE and DELETE**
+
+![Update status and delete](screenshots/test_update_and_delete_output.png)
+
+**`performance_compare` – row-by-row vs FORALL timings** (analysis in `docs/IMPLEMENTATION_NOTES.md`)
+
+![Performance comparison](screenshots/test_performance_compare_output.png)
+
+### 5.2 Error handling (`03_tests/test_error_cases.sql`)
+
+**Predefined exceptions: NO_DATA_FOUND, TOO_MANY_ROWS, ZERO_DIVIDE, DUP_VAL_ON_INDEX**
+
+![Predefined exceptions](screenshots/test_predefined_exceptions_output.png)
+
+**`enroll_student` errors – unknown student/course, inactive student, full course, duplicate** (user-defined exceptions + `RAISE_APPLICATION_ERROR`)
+
+![Enroll errors](screenshots/test_enroll_student_errors_output.png)
+
+**Function errors – invalid score, unknown student/course, ambiguous last name, invalid limit**
+
+![Function errors](screenshots/test_function_errors_output.png)
+
+**`FORALL ... SAVE EXCEPTIONS` – bad rows reported while good rows succeed**
+
+![FORALL SAVE EXCEPTIONS](screenshots/test_forall_save_exceptions_output.png)
+
+**Bulk and DML errors – empty list, not enough seats, invalid curve, SQL%NOTFOUND**
+
+![Bulk and DML errors](screenshots/test_bulk_and_dml_errors_output.png)
+
+**Report/transcript errors and database constraint violations (CHECK, FOREIGN KEY)**
+
+![Report and constraint errors](screenshots/test_report_and_constraint_errors_output.png)
+
+**`ERROR_LOG` – every handled error recorded by the autonomous-transaction logger**
+
+![Error log](screenshots/test_error_log_output.png)
+
+## 6. AI usage statement
+We used an AI assistant (Claude, by Anthropic). AI tools were used as supporting resources during the planning and initial development of this project. They assisted with generating ideas, drafting some SQL/PL/SQL scripts, and organizing the documentation. Both group members reviewed, tested, modified, and verified the implementation to ensure that we understood the code and that it met the assignment requirements.
